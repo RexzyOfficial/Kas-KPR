@@ -493,24 +493,27 @@
         </header>
 
         <main class="container mx-auto px-4 py-4">
-            <!-- Dashboard Summary -->
-            <section class="mb-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4" id="summaryCards">
-                    <!-- Skeleton Loading untuk Summary Cards -->
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
-                        <div class="skeleton h-4 w-24 mb-2"></div>
-                        <div class="skeleton h-6 w-32"></div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
-                        <div class="skeleton h-4 w-24 mb-2"></div>
-                        <div class="skeleton h-6 w-32"></div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
-                        <div class="skeleton h-4 w-24 mb-2"></div>
-                        <div class="skeleton h-6 w-32"></div>
-                    </div>
-                </div>
-            </section>
+            <!-- Di bagian Dashboard Summary -->
+<section class="mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4" id="summaryCards">
+        <!-- Skeleton loading akan diganti oleh JavaScript -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
+            <div class="skeleton h-4 w-24 mb-2"></div>
+            <div class="skeleton h-6 w-32"></div>
+            <div class="skeleton h-3 w-20 mt-1"></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
+            <div class="skeleton h-4 w-24 mb-2"></div>
+            <div class="skeleton h-6 w-32"></div>
+            <div class="skeleton h-3 w-20 mt-1"></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
+            <div class="skeleton h-4 w-24 mb-2"></div>
+            <div class="skeleton h-6 w-32"></div>
+            <div class="skeleton h-3 w-20 mt-1"></div>
+        </div>
+    </div>
+</section>
 
             <div class="flex flex-col lg:flex-row gap-4 md:gap-6">
                 <!-- Form & Riwayat Transaksi -->
@@ -1346,56 +1349,60 @@
             loadTransactions(type);
         }
 
-        // Update summary cards
-        function updateSummary() {
-            const income = transactions
-                .filter(t => t.type === 'income')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const expense = transactions
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const balance = income - expense;
-            
-            summaryCards.innerHTML = `
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 bounce-in transition-colors duration-300">
-                    <div class="flex justify-between items-start">
-                        <div class="min-w-0 flex-1">
-                            <p class="text-gray-500 dark:text-gray-400 text-xs">Total Saldo</p>
-                            <h2 class="text-xl font-bold text-gray-800 dark:text-white mt-1 truncate">${formatCurrency(balance)}</h2>
-                        </div>
-                        <div class="bg-green-100 dark:bg-green-900 p-2 rounded-lg flex-shrink-0 ml-2">
-                            <i class="fas fa-wallet text-green-600 dark:text-green-400"></i>
-                        </div>
-                    </div>
+        // Update summary cards - SALDO TOTAL KUMULATIF
+function updateSummary() {
+    // Hitung total pemasukan dan pengeluaran SEMUA transaksi
+    const totalIncome = transactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+    const totalExpense = transactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+    const totalBalance = totalIncome - totalExpense;
+    
+    summaryCards.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 bounce-in transition-colors duration-300">
+            <div class="flex justify-between items-start">
+                <div class="min-w-0 flex-1">
+                    <p class="text-gray-500 dark:text-gray-400 text-xs">Total Saldo Keseluruhan</p>
+                    <h2 class="text-xl font-bold ${totalBalance >= 0 ? 'text-gray-800 dark:text-white' : 'text-red-600 dark:text-red-400'} mt-1 truncate">${formatCurrency(totalBalance)}</h2>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Akumulasi semua transaksi</p>
                 </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 bounce-in transition-colors duration-300" style="animation-delay: 0.1s;">
-                    <div class="flex justify-between items-start">
-                        <div class="min-w-0 flex-1">
-                            <p class="text-gray-500 dark:text-gray-400 text-xs">Total Pemasukan</p>
-                            <h2 class="text-xl font-bold text-gray-800 dark:text-white mt-1 truncate">${formatCurrency(income)}</h2>
-                        </div>
-                        <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg flex-shrink-0 ml-2">
-                            <i class="fas fa-arrow-down text-blue-600 dark:text-blue-400"></i>
-                        </div>
-                    </div>
+                <div class="bg-green-100 dark:bg-green-900 p-2 rounded-lg flex-shrink-0 ml-2">
+                    <i class="fas fa-wallet text-green-600 dark:text-green-400"></i>
                 </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 bounce-in transition-colors duration-300" style="animation-delay: 0.2s;">
-                    <div class="flex justify-between items-start">
-                        <div class="min-w-0 flex-1">
-                            <p class="text-gray-500 dark:text-gray-400 text-xs">Total Pengeluaran</p>
-                            <h2 class="text-xl font-bold text-gray-800 dark:text-white mt-1 truncate">${formatCurrency(expense)}</h2>
-                        </div>
-                        <div class="bg-red-100 dark:bg-red-900 p-2 rounded-lg flex-shrink-0 ml-2">
-                            <i class="fas fa-arrow-up text-red-600 dark:text-red-400"></i>
-                        </div>
-                    </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 bounce-in transition-colors duration-300" style="animation-delay: 0.1s;">
+            <div class="flex justify-between items-start">
+                <div class="min-w-0 flex-1">
+                    <p class="text-gray-500 dark:text-gray-400 text-xs">Total Pemasukan</p>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mt-1 truncate">${formatCurrency(totalIncome)}</h2>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Semua waktu</p>
                 </div>
-            `;
-        }
+                <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg flex-shrink-0 ml-2">
+                    <i class="fas fa-arrow-down text-blue-600 dark:text-blue-400"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 bounce-in transition-colors duration-300" style="animation-delay: 0.2s;">
+            <div class="flex justify-between items-start">
+                <div class="min-w-0 flex-1">
+                    <p class="text-gray-500 dark:text-gray-400 text-xs">Total Pengeluaran</p>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mt-1 truncate">${formatCurrency(totalExpense)}</h2>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Semua waktu</p>
+                </div>
+                <div class="bg-red-100 dark:bg-red-900 p-2 rounded-lg flex-shrink-0 ml-2">
+                    <i class="fas fa-arrow-up text-red-600 dark:text-red-400"></i>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
         // Populate month/year selectors
         function populateMonthYearOptions() {
@@ -1415,31 +1422,91 @@
             }
         }
 
-        // Update monthly summary
-        function updateMonthlySummary() {
-            const selectedMonth = parseInt(monthSelector.value);
-            const selectedYear = parseInt(yearSelector.value);
-            
-            const monthlyTransactions = transactions.filter(t => {
-                const transactionDate = new Date(t.date);
-                return transactionDate.getMonth() + 1 === selectedMonth && 
-                       transactionDate.getFullYear() === selectedYear;
-            });
-            
-            const income = monthlyTransactions
-                .filter(t => t.type === 'income')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const expense = monthlyTransactions
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const balance = income - expense;
-            
-            monthlyIncome.textContent = formatCurrency(income);
-            monthlyExpense.textContent = formatCurrency(expense);
-            monthlyBalance.textContent = formatCurrency(balance);
+        // Update monthly summary - SALDO BULANAN
+function updateMonthlySummary() {
+    const selectedMonth = parseInt(monthSelector.value);
+    const selectedYear = parseInt(yearSelector.value);
+    
+    // Filter transaksi untuk bulan dan tahun yang dipilih
+    const monthlyTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        return transactionDate.getMonth() + 1 === selectedMonth && 
+               transactionDate.getFullYear() === selectedYear;
+    });
+    
+    const monthlyIncome = monthlyTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+    const monthlyExpense = monthlyTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+    const monthlyBalance = monthlyIncome - monthlyExpense;
+    
+    // Update tampilan
+    document.getElementById('monthlyIncome').textContent = formatCurrency(monthlyIncome);
+    document.getElementById('monthlyExpense').textContent = formatCurrency(monthlyExpense);
+    document.getElementById('monthlyBalance').textContent = formatCurrency(monthlyBalance);
+    
+    // Tambahkan warna untuk saldo negatif
+    const balanceElement = document.getElementById('monthlyBalance');
+    if (monthlyBalance < 0) {
+        balanceElement.classList.remove('text-gray-800', 'dark:text-white');
+        balanceElement.classList.add('text-red-600', 'dark:text-red-400');
+    } else {
+        balanceElement.classList.remove('text-red-600', 'dark:text-red-400');
+        balanceElement.classList.add('text-gray-800', 'dark:text-white');
+    }
+}
+
+// Fungsi untuk menghitung saldo running (akumulatif per tanggal)
+function calculateRunningBalance() {
+    if (transactions.length === 0) return [];
+    
+    // Urutkan transaksi berdasarkan tanggal (paling lama dulu)
+    const sortedTransactions = [...transactions].sort((a, b) => 
+        new Date(a.date) - new Date(b.date)
+    );
+    
+    let runningBalance = 0;
+    const balanceHistory = [];
+    
+    sortedTransactions.forEach(transaction => {
+        if (transaction.type === 'income') {
+            runningBalance += transaction.amount;
+        } else {
+            runningBalance -= transaction.amount;
         }
+        
+        balanceHistory.push({
+            date: transaction.date,
+            description: transaction.description,
+            amount: transaction.amount,
+            type: transaction.type,
+            runningBalance: runningBalance
+        });
+    });
+    
+    return balanceHistory;
+}
+
+// Tampilkan riwayat saldo (opsional)
+function showBalanceHistory() {
+    const balanceHistory = calculateRunningBalance();
+    
+    console.log('=== RIWAYAT SALDO AKUMULATIF ===');
+    balanceHistory.forEach(item => {
+        console.log(`${formatDate(item.date)} | ${item.description} | ${item.type === 'income' ? '+' : '-'}${formatCurrency(item.amount)} | Saldo: ${formatCurrency(item.runningBalance)}`);
+    });
+    
+    // Tampilkan saldo terkini
+    const currentBalance = balanceHistory.length > 0 
+        ? balanceHistory[balanceHistory.length - 1].runningBalance 
+        : 0;
+    
+    console.log('SALDO AKHIR:', formatCurrency(currentBalance));
+}
 
         // Utility functions
         function formatCurrency(amount) {
