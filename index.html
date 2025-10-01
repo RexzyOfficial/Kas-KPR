@@ -59,40 +59,52 @@
 
     <!-- Firebase SDK -->
     <script type="module">
-    // Firebase Configuration dengan Environment Variables
-    const firebaseConfig = {
-        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-        databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-        appId: import.meta.env.VITE_FIREBASE_APP_ID,
-        measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
-    };
-
-    // Use environment variables if available, otherwise use dev config
-    const config = import.meta.env.VITE_FIREBASE_API_KEY ? firebaseConfig : devConfig;
-
-    // Initialize Firebase
-    const app = initializeApp(config);
-    const auth = getAuth(app);
-    const database = getDatabase(app);
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { getDatabase, ref, set, get, child, push, update, remove, onValue, off, onChildChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
     
-    // Make Firebase available globally
-    window.firebase = {
-        auth,
-        database,
-        authFunctions: {
-            signInWithEmailAndPassword,
-            createUserWithEmailAndPassword,
-            signOut,
-            onAuthStateChanged
-        },
-        databaseFunctions: {
-            ref, set, get, child, push, update, remove, onValue, off, onChildChanged
-        }
+    // Firebase Configuration dengan fallback
+    const firebaseConfig = {
+        apiKey: "AIzaSyCrs4JMMLMwNZR9DyiOQB4SEomwLak3NJg",
+        authDomain: "kas-kpr.firebaseapp.com",
+        databaseURL: "https://kas-kpr-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "kas-kpr",
+        storageBucket: "kas-kpr.firebasestorage.app",
+        messagingSenderId: "789983569241",
+        appId: "1:789983569241:web:ef372ad66007c14d9dd848",
+        measurementId: "G-QD1NYS0CF8"
     };
+
+    console.log('Firebase Config:', firebaseConfig); // Debug
+
+    try {
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+        
+        console.log('Firebase initialized successfully'); // Debug
+        
+        // Make Firebase available globally
+        window.firebase = {
+            auth,
+            database,
+            authFunctions: {
+                signInWithEmailAndPassword,
+                createUserWithEmailAndPassword,
+                signOut,
+                onAuthStateChanged
+            },
+            databaseFunctions: {
+                ref, set, get, child, push, update, remove, onValue, off, onChildChanged
+            }
+        };
+        
+        console.log('Firebase global object created'); // Debug
+        
+    } catch (error) {
+        console.error('Firebase initialization error:', error);
+    }
 </script>
 
     <!-- Tailwind CSS -->
