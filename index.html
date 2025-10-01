@@ -27,7 +27,7 @@
     <!-- PWA Service Worker Registration -->
     <script>
         // Register service worker for PWA
-        if ('serviceWorker' in navigator) {
+        /* if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js')
                     .then(function(registration) {
@@ -38,6 +38,7 @@
                     });
             });
         }
+        */
 
         // Prevent zoom on double tap
         document.addEventListener('DOMContentLoaded', function() {
