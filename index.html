@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CashFlow - Pencatat Uang Kas</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="application-name" content="CashFlow">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="CashFlow">
+    <meta name="description" content="Aplikasi pencatat uang kas untuk mengelola pemasukan dan pengeluaran">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="msapplication-TileColor" content="#3b82f6">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="theme-color" content="#3b82f6">
+
+    <!-- Favicon & Icons -->
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+    <link rel="manifest" href="site.webmanifest">
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+
+        // Prevent zoom on double tap
+        document.addEventListener('DOMContentLoaded', function() {
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function (event) {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+        });
+
+        // Prevent context menu on long press
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+        });
+    </script>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+        import { getDatabase, ref, set, get, child, push, update, remove, onValue, off, onChildChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCrs4JMMLMwNZR9DyiOQB4SEomwLak3NJg",
+            authDomain: "kas-kpr.firebaseapp.com",
+            databaseURL: "https://kas-kpr-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "kas-kpr",
+            storageBucket: "kas-kpr.firebasestorage.app",
+            messagingSenderId: "789983569241",
+            appId: "1:789983569241:web:ef372ad66007c14d9dd848",
+            measurementId: "G-QD1NYS0CF8"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+        
+        // Make Firebase available globally
+        window.firebase = {
+            auth,
+            database,
+            authFunctions: {
+                signInWithEmailAndPassword,
+                createUserWithEmailAndPassword,
+                signOut,
+                onAuthStateChanged
+            },
+            databaseFunctions: {
+                ref, set, get, child, push, update, remove, onValue, off, onChildChanged
+            }
+        };
+    </script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#1e40af',
+                        success: '#10b981',
+                        danger: '#ef4444',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* PWA Optimizations */
+        body {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        input, textarea, select {
+            -webkit-user-select: text;
+            -khtml-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        .bounce-in { animation: bounceIn 0.6s ease-out; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes bounceIn { 
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-5px); }
+        
+        /* Custom radio button */
+        .custom-radio {
+            display: none;
+        }
+        .custom-radio + label {
+            position: relative;
+            padding-left: 2rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 0;
+        }
+        .custom-radio + label:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid #d1d5db;
+            border-radius: 50%;
+            background: white;
+            transition: all 0.3s;
+        }
+        .custom-radio:checked + label:before {
+            border-color: #3b82f6;
+            background: #3b82f6;
+        }
+        .custom-radio:checked + label:after {
+            content: '';
+            position: absolute;
+            left: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background: white;
+        }
+        
+        .dark .custom-radio + label:before {
+            border-color: #4b5563;
+            background: #374151;
+        }
+
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        .dark .custom-scrollbar::-webkit-scrollbar-track {
+            background: #374151;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #6b7280;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        
+        .loading-spinner-sm {
+            width: 16px;
+            height: 16px;
+            border-width: 2px;
+        }
+        
+        .loading-spinner-lg {
+            width: 40px;
+            height: 40px;
+            border-width: 4px;
+        }
+        
+        .loading-spinner-white {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 4px;
+        }
+        
+        .dark .skeleton {
+            background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+            background-size: 200% 100%;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* Pulse animation */
+        .pulse-loading {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .mobile-stack {
+                flex-direction: column;
+            }
+            .mobile-full {
+                width: 100%;
+            }
+            .mobile-text-center {
+                text-align: center;
+            }
+            .mobile-p-3 {
+                padding: 0.75rem;
+            }
+        }
+
+        /* PWA Fullscreen Styles */
+        @media all and (display-mode: fullscreen) {
+            body {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+            }
+        }
+
+        /* Safe area support for notch devices */
+        .safe-area-top {
+            padding-top: env(safe-area-inset-top);
+        }
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+    <!-- Global Loading Overlay -->
+    <div id="globalLoading" class="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col items-center justify-center transition-opacity duration-300 hidden">
+        <div class="text-center">
+            <div class="loading-spinner loading-spinner-lg border-primary dark:border-blue-400 mx-auto mb-4"></div>
+            <div class="text-gray-600 dark:text-gray-400 font-medium">Memuat CashFlow...</div>
+            <div class="text-sm text-gray-500 dark:text-gray-500 mt-2">Harap tunggu sebentar</div>
+        </div>
+    </div>
+
+    <!-- Content Loading -->
+    <div id="contentLoading" class="fixed inset-0 bg-white dark:bg-gray-900 bg-opacity-80 z-40 flex items-center justify-center hidden">
+        <div class="text-center">
+            <div class="loading-spinner loading-spinner-lg border-primary dark:border-blue-400 mx-auto mb-3"></div>
+            <div class="text-gray-600 dark:text-gray-400 text-sm">Memuat data...</div>
+        </div>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 w-full max-w-md slide-up">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-wallet text-2xl text-white"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">CashFlow</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-2">Login ke Akun Anda</p>
+            </div>
+            
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 font-medium mb-2 text-sm">Email</label>
+                    <input type="email" id="loginEmail" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 text-sm" placeholder="email@example.com" required>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 font-medium mb-2 text-sm">Password</label>
+                    <input type="password" id="loginPassword" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 text-sm" placeholder="Masukkan password" required>
+                </div>
+                
+                <button type="submit" id="loginBtn" class="w-full bg-primary hover:bg-secondary text-white font-bold py-3 px-4 rounded-lg transition duration-300 text-sm flex items-center justify-center">
+                    <span id="loginBtnText">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Login
+                    </span>
+                    <div id="loginBtnLoading" class="loading-spinner loading-spinner-white loading-spinner-sm hidden ml-2"></div>
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <p class="text-gray-600 dark:text-gray-400 text-sm">Belum punya akun? 
+                    <button id="showRegister" class="text-primary hover:text-secondary font-medium">Daftar di sini</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Screen -->
+    <div id="registerScreen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-500 to-blue-600 p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 w-full max-w-md slide-up">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-success rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-user-plus text-2xl text-white"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Daftar Akun Baru</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-2">Buat akun CashFlow Anda</p>
+            </div>
+            
+            <form id="registerForm" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 font-medium mb-2 text-sm">Nama Lengkap</label>
+                    <input type="text" id="registerName" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 text-sm" placeholder="Masukkan nama lengkap" required>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 font-medium mb-2 text-sm">Email</label>
+                    <input type="email" id="registerEmail" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 text-sm" placeholder="email@example.com" required>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 font-medium mb-2 text-sm">Password</label>
+                    <input type="password" id="registerPassword" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 text-sm" placeholder="Minimal 6 karakter" minlength="6" required>
+                </div>
+                
+                <button type="submit" id="registerBtn" class="w-full bg-success hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 text-sm flex items-center justify-center">
+                    <span id="registerBtnText">
+                        <i class="fas fa-user-plus mr-2"></i>Daftar
+                    </span>
+                    <div id="registerBtnLoading" class="loading-spinner loading-spinner-white loading-spinner-sm hidden ml-2"></div>
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <p class="text-gray-600 dark:text-gray-400 text-sm">Sudah punya akun? 
+                    <button id="showLogin" class="text-primary hover:text-secondary font-medium">Login di sini</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="hidden">
+        <!-- Header -->
+        <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10 transition-colors duration-300">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <span class="ml-2 text-lg font-bold text-gray-800 dark:text-white">CashFlow</span>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <!-- Profile Dropdown -->
+                    <div class="relative">
+                        <button id="profileDropdownBtn" class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="text-left hidden sm:block">
+                                <div class="text-sm font-medium text-gray-800 dark:text-white" id="userNameHeader"></div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400" id="userRoleHeader"></div>
+                            </div>
+                            <i class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"></i>
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div id="profileDropdown" class="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-20 hidden">
+                            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-gray-800 dark:text-white" id="dropdownUserName"></div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400" id="dropdownUserEmail"></div>
+                                        <div class="text-xs text-primary font-medium mt-1" id="dropdownUserRole"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
+                                <div>Bergabung: <span id="joinedDate"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="themeToggle" class="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-moon text-sm"></i>
+                    </button>
+                    <button id="logoutBtn" class="p-2 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800 transition-colors flex items-center">
+                        <i class="fas fa-sign-out-alt text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 py-4">
+            <!-- Dashboard Summary -->
+            <section class="mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4" id="summaryCards">
+                    <!-- Skeleton Loading untuk Summary Cards -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
+                        <div class="skeleton h-4 w-24 mb-2"></div>
+                        <div class="skeleton h-6 w-32"></div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
+                        <div class="skeleton h-4 w-24 mb-2"></div>
+                        <div class="skeleton h-6 w-32"></div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
+                        <div class="skeleton h-4 w-24 mb-2"></div>
+                        <div class="skeleton h-6 w-32"></div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="flex flex-col lg:flex-row gap-4 md:gap-6">
+                <!-- Form & Riwayat Transaksi -->
+                <div class="lg:w-2/3">
+                    <!-- Form Tambah Transaksi -->
+                    <section id="transactionFormSection" class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 md:p-5 mb-4 md:mb-6 slide-up transition-colors duration-300">
+                        <h2 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Tambah Transaksi Baru</h2>
+                        
+                        <form id="transactionForm" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="description" class="block text-gray-700 dark:text-gray-300 font-medium mb-2 text-sm">Keterangan</label>
+                                    <input type="text" id="description" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 text-sm" placeholder="Contoh: Gaji Bulanan" required>
+                                </div>
+                                
+                                <div>
+                                    <label for="amount" class="block text-gray-700 dark:text-gray-300 font-medium mb-2 text-sm">Nominal (Rp)</label>
+                                    <input type="number" id="amount" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 text-sm" placeholder="Contoh: 500000" min="1" required>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 dark:text-gray-300 font-medium mb-2 text-sm">Jenis Transaksi</label>
+                                    <div class="flex space-x-4">
+                                        <div class="flex items-center">
+                                            <input type="radio" id="income" name="type" value="income" class="custom-radio" checked>
+                                            <label for="income" class="text-gray-700 dark:text-gray-300 text-sm">Pemasukan</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="radio" id="expense" name="type" value="expense" class="custom-radio">
+                                            <label for="expense" class="text-gray-700 dark:text-gray-300 text-sm">Pengeluaran</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label for="date" class="block text-gray-700 dark:text-gray-300 font-medium mb-2 text-sm">Tanggal</label>
+                                    <input type="date" id="date" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm" required>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-end pt-2">
+                                <button type="submit" id="submitTransactionBtn" class="bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-lg transition duration-300 flex items-center text-sm">
+                                    <span id="submitTransactionText">
+                                        <i class="fas fa-plus mr-2"></i> Tambah Transaksi
+                                    </span>
+                                    <div id="submitTransactionLoading" class="loading-spinner loading-spinner-white loading-spinner-sm hidden ml-2"></div>
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+                    
+                    <!-- Riwayat Transaksi -->
+                    <section class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 md:p-5 slide-up transition-colors duration-300">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+                            <h2 class="text-lg font-bold text-gray-800 dark:text-white text-center sm:text-left">Riwayat Transaksi</h2>
+                            <div class="flex space-x-2 justify-center sm:justify-start">
+                                <button id="filterAll" class="px-3 py-1 bg-primary text-white rounded-lg text-xs sm:text-sm">Semua</button>
+                                <button id="filterIncome" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs sm:text-sm">Pemasukan</button>
+                                <button id="filterExpense" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs sm:text-sm">Pengeluaran</button>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full min-w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                                        <th class="py-2 text-left text-gray-500 dark:text-gray-400 font-medium text-xs sm:text-sm">Keterangan</th>
+                                        <th class="py-2 text-left text-gray-500 dark:text-gray-400 font-medium text-xs sm:text-sm hidden md:table-cell">Tanggal</th>
+                                        <th class="py-2 text-right text-gray-500 dark:text-gray-400 font-medium text-xs sm:text-sm">Nominal</th>
+                                        <th id="actionHeader" class="py-2 text-right text-gray-500 dark:text-gray-400 font-medium text-xs sm:text-sm">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionList">
+                                    <!-- Skeleton Loading untuk Transaksi -->
+                                    <tr>
+                                        <td colspan="4" class="py-4">
+                                            <div class="flex justify-center">
+                                                <div class="loading-spinner border-primary dark:border-blue-400"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+                
+                <!-- Laporan Bulanan -->
+                <div class="lg:w-1/3 mt-4 lg:mt-0">
+                    <section class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 md:p-5 slide-up transition-colors duration-300">
+                        <h2 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Laporan Bulanan</h2>
+                        
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <select id="monthSelector" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm w-full">
+                                    <!-- Opsi bulan akan diisi oleh JavaScript -->
+                                </select>
+                                <select id="yearSelector" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm w-full">
+                                    <!-- Opsi tahun akan diisi oleh JavaScript -->
+                                </select>
+                            </div>
+                            
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                <div class="flex justify-between items-center mb-3">
+                                    <span class="text-gray-600 dark:text-gray-400 text-sm">Pemasukan:</span>
+                                    <span class="text-green-600 dark:text-green-400 font-medium text-sm" id="monthlyIncome">
+                                        <div class="skeleton h-4 w-16 inline-block"></div>
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center mb-3">
+                                    <span class="text-gray-600 dark:text-gray-400 text-sm">Pengeluaran:</span>
+                                    <span class="text-red-600 dark:text-red-400 font-medium text-sm" id="monthlyExpense">
+                                        <div class="skeleton h-4 w-16 inline-block"></div>
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-600">
+                                    <span class="text-gray-800 dark:text-white font-medium text-sm">Saldo Bulan Ini:</span>
+                                    <span class="text-gray-800 dark:text-white font-medium text-sm" id="monthlyBalance">
+                                        <div class="skeleton h-4 w-16 inline-block"></div>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Konfirmasi Hapus -->
+    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-5 max-w-md w-full mx-4 slide-up transition-colors duration-300">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Hapus Transaksi</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-400 mb-6 text-sm">Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancelDelete" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm">Batal</button>
+                <button id="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center">
+                    <span id="confirmDeleteText">Hapus</span>
+                    <div id="confirmDeleteLoading" class="loading-spinner loading-spinner-white loading-spinner-sm hidden ml-2"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifikasi -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 dark:bg-gray-700 text-white px-4 py-3 rounded-lg shadow-lg z-30 transform translate-y-16 transition-transform duration-300 hidden max-w-sm">
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2 text-green-400" id="toastIcon"></i>
+            <span id="toastMessage" class="text-sm">Pesan</span>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let userRole = null;
+        let userData = null;
+        let transactions = [];
+        let transactionToDelete = null;
+        let currentFilter = 'all';
+        let userDataListener = null;
+        let transactionsListener = null;
+
+        // DOM Elements
+        const loginScreen = document.getElementById('loginScreen');
+        const registerScreen = document.getElementById('registerScreen');
+        const mainApp = document.getElementById('mainApp');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const showRegister = document.getElementById('showRegister');
+        const showLogin = document.getElementById('showLogin');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const themeToggle = document.getElementById('themeToggle');
+        const userNameHeader = document.getElementById('userNameHeader');
+        const userRoleHeader = document.getElementById('userRoleHeader');
+        const transactionFormSection = document.getElementById('transactionFormSection');
+        const transactionForm = document.getElementById('transactionForm');
+        const transactionList = document.getElementById('transactionList');
+        const summaryCards = document.getElementById('summaryCards');
+        const monthlyIncome = document.getElementById('monthlyIncome');
+        const monthlyExpense = document.getElementById('monthlyExpense');
+        const monthlyBalance = document.getElementById('monthlyBalance');
+        const monthSelector = document.getElementById('monthSelector');
+        const yearSelector = document.getElementById('yearSelector');
+        const filterAll = document.getElementById('filterAll');
+        const filterIncome = document.getElementById('filterIncome');
+        const filterExpense = document.getElementById('filterExpense');
+        const deleteModal = document.getElementById('deleteModal');
+        const cancelDelete = document.getElementById('cancelDelete');
+        const confirmDelete = document.getElementById('confirmDelete');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+        const toastIcon = document.getElementById('toastIcon');
+        const profileDropdownBtn = document.getElementById('profileDropdownBtn');
+        const profileDropdown = document.getElementById('profileDropdown');
+        const dropdownUserName = document.getElementById('dropdownUserName');
+        const dropdownUserEmail = document.getElementById('dropdownUserEmail');
+        const dropdownUserRole = document.getElementById('dropdownUserRole');
+        const joinedDate = document.getElementById('joinedDate');
+        
+        // Loading Elements
+        const globalLoading = document.getElementById('globalLoading');
+        const contentLoading = document.getElementById('contentLoading');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginBtnText = document.getElementById('loginBtnText');
+        const loginBtnLoading = document.getElementById('loginBtnLoading');
+        const registerBtn = document.getElementById('registerBtn');
+        const registerBtnText = document.getElementById('registerBtnText');
+        const registerBtnLoading = document.getElementById('registerBtnLoading');
+        const submitTransactionBtn = document.getElementById('submitTransactionBtn');
+        const submitTransactionText = document.getElementById('submitTransactionText');
+        const submitTransactionLoading = document.getElementById('submitTransactionLoading');
+        const confirmDeleteText = document.getElementById('confirmDeleteText');
+        const confirmDeleteLoading = document.getElementById('confirmDeleteLoading');
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show initial loading
+            showGlobalLoading();
+            
+            // Set default date
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            document.getElementById('date').value = formattedDate;
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Check auth state
+            checkAuthState();
+            
+            // Populate month/year selectors
+            populateMonthYearOptions();
+            
+            // Check saved theme
+            checkSavedTheme();
+            
+            // Hide global loading after a short delay
+            setTimeout(() => {
+                hideGlobalLoading();
+            }, 1000);
+        });
+
+        // Loading Functions
+        function showGlobalLoading() {
+            globalLoading.classList.remove('hidden');
+        }
+
+        function hideGlobalLoading() {
+            globalLoading.classList.add('hidden');
+        }
+
+        function showContentLoading() {
+            contentLoading.classList.remove('hidden');
+        }
+
+        function hideContentLoading() {
+            contentLoading.classList.add('hidden');
+        }
+
+        function showButtonLoading(button, textElement, loadingElement) {
+            textElement.classList.add('hidden');
+            loadingElement.classList.remove('hidden');
+            button.disabled = true;
+        }
+
+        function hideButtonLoading(button, textElement, loadingElement) {
+            textElement.classList.remove('hidden');
+            loadingElement.classList.add('hidden');
+            button.disabled = false;
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Auth forms
+            loginForm.addEventListener('submit', handleLogin);
+            registerForm.addEventListener('submit', handleRegister);
+            showRegister.addEventListener('click', () => showScreen('register'));
+            showLogin.addEventListener('click', () => showScreen('login'));
+            logoutBtn.addEventListener('click', handleLogout);
+            
+            // Theme toggle
+            themeToggle.addEventListener('click', toggleTheme);
+            
+            // Transaction form
+            transactionForm.addEventListener('submit', addTransaction);
+            
+            // Filters
+            filterAll.addEventListener('click', () => filterTransactions('all'));
+            filterIncome.addEventListener('click', () => filterTransactions('income'));
+            filterExpense.addEventListener('click', () => filterTransactions('expense'));
+            
+            // Monthly report
+            monthSelector.addEventListener('change', updateMonthlySummary);
+            yearSelector.addEventListener('change', updateMonthlySummary);
+            
+            // Delete modal
+            cancelDelete.addEventListener('click', () => deleteModal.classList.add('hidden'));
+            confirmDelete.addEventListener('click', deleteTransaction);
+            
+            // Profile dropdown
+            profileDropdownBtn.addEventListener('click', toggleProfileDropdown);
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!profileDropdownBtn.contains(e.target) && !profileDropdown.contains(e.target)) {
+                    profileDropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        // Toggle profile dropdown
+        function toggleProfileDropdown() {
+            profileDropdown.classList.toggle('hidden');
+        }
+
+        // Auth state listener
+        function checkAuthState() {
+            window.firebase.authFunctions.onAuthStateChanged(window.firebase.auth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    loadUserData(user.uid);
+                } else {
+                    // Reset loading state when user is not logged in
+                    hideButtonLoading(loginBtn, loginBtnText, loginBtnLoading);
+                    hideButtonLoading(registerBtn, registerBtnText, registerBtnLoading);
+                    
+                    showScreen('login');
+                    // Remove user data listener when logged out
+                    if (userDataListener) {
+                        userDataListener();
+                        userDataListener = null;
+                    }
+                    // Remove transactions listener when logged out
+                    if (transactionsListener) {
+                        transactionsListener();
+                        transactionsListener = null;
+                    }
+                }
+            });
+        }
+
+        // Load user data from database with real-time updates
+        function loadUserData(userId) {
+            showContentLoading();
+            
+            const userRef = window.firebase.databaseFunctions.ref(window.firebase.database, 'users/' + userId);
+            
+            // Set up real-time listener for user data changes
+            userDataListener = window.firebase.databaseFunctions.onValue(userRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    userData = snapshot.val();
+                    userRole = userData.role;
+                    
+                    // Update UI with user data
+                    updateUserInterface();
+                    
+                    showScreen('main');
+                    loadTransactions();
+                    
+                    // Hide content loading after data is loaded
+                    setTimeout(() => {
+                        hideContentLoading();
+                    }, 500);
+                } else {
+                    // User data not found - account might have been deleted
+                    hideContentLoading();
+                    showToast('Akun tidak ditemukan. Silakan hubungi administrator.', 'error');
+                    handleLogout();
+                }
+            }, (error) => {
+                showToast('Error loading user data: ' + error.message, 'error');
+                hideContentLoading();
+            });
+        }
+
+        // Update user interface with current user data
+        function updateUserInterface() {
+            if (!userData) return;
+            
+            // Update header
+            userNameHeader.textContent = userData.name || userData.email;
+            userRoleHeader.textContent = userRole === 'admin' ? 'Admin' : 'User';
+            
+            // Update dropdown profile
+            dropdownUserName.textContent = userData.name || userData.email;
+            dropdownUserEmail.textContent = userData.email;
+            dropdownUserRole.textContent = userRole === 'admin' ? 'Administrator' : 'User';
+            
+            // Format and display join date
+            if (userData.createdAt) {
+                const joinDate = new Date(userData.createdAt);
+                joinedDate.textContent = formatDate(joinDate.toISOString());
+            }
+            
+            // Show/hide transaction form based on role
+            if (userRole === 'user') {
+                transactionFormSection.classList.add('hidden');
+                document.getElementById('actionHeader').classList.add('hidden');
+            } else {
+                transactionFormSection.classList.remove('hidden');
+                document.getElementById('actionHeader').classList.remove('hidden');
+            }
+            
+            // Show role change notification if needed
+            showRoleChangeNotification();
+        }
+
+        // Show notification when role changes
+        function showRoleChangeNotification() {
+            const lastKnownRole = localStorage.getItem(`lastRole_${currentUser.uid}`);
+            
+            if (lastKnownRole && lastKnownRole !== userRole) {
+                if (userRole === 'admin') {
+                    showToast('Selamat! Anda sekarang memiliki akses Admin', 'success');
+                } else {
+                    showToast('Role Anda telah diubah menjadi User', 'warning');
+                }
+            }
+            
+            // Store current role for future comparisons
+            localStorage.setItem(`lastRole_${currentUser.uid}`, userRole);
+        }
+
+        // Create user data in database (default role: user)
+        async function createUserData(userId) {
+            const userRef = window.firebase.databaseFunctions.ref(window.firebase.database, 'users/' + userId);
+            const userData = {
+                name: document.getElementById('registerName')?.value || currentUser.email.split('@')[0],
+                email: currentUser.email,
+                role: 'user', // Default role untuk semua user baru
+                createdAt: new Date().toISOString()
+            };
+            
+            await window.firebase.databaseFunctions.set(userRef, userData);
+        }
+
+        // Handle login
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            // Show loading state
+            showButtonLoading(loginBtn, loginBtnText, loginBtnLoading);
+            
+            try {
+                await window.firebase.authFunctions.signInWithEmailAndPassword(window.firebase.auth, email, password);
+                showToast('Login berhasil!', 'success');
+            } catch (error) {
+                showToast('Login gagal: ' + error.message, 'error');
+                // Hide loading state on error
+                hideButtonLoading(loginBtn, loginBtnText, loginBtnLoading);
+            }
+        }
+
+        // Handle register
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            
+            // Show loading state
+            showButtonLoading(registerBtn, registerBtnText, registerBtnLoading);
+            
+            try {
+                const userCredential = await window.firebase.authFunctions.createUserWithEmailAndPassword(window.firebase.auth, email, password);
+                
+                // Create user data in database
+                await createUserData(userCredential.user.uid);
+                
+                showToast('Registrasi berhasil! Silakan login.', 'success');
+                showScreen('login');
+                
+                // Clear form
+                registerForm.reset();
+                
+                // Hide loading state
+                hideButtonLoading(registerBtn, registerBtnText, registerBtnLoading);
+            } catch (error) {
+                showToast('Registrasi gagal: ' + error.message, 'error');
+                // Hide loading state on error
+                hideButtonLoading(registerBtn, registerBtnText, registerBtnLoading);
+            }
+        }
+
+        // Handle logout
+        async function handleLogout() {
+            try {
+                // Show loading state
+                logoutBtn.innerHTML = '<div class="loading-spinner loading-spinner-white loading-spinner-sm"></div>';
+                
+                // Remove user data listener
+                if (userDataListener) {
+                    userDataListener();
+                    userDataListener = null;
+                }
+                
+                // Remove transactions listener
+                if (transactionsListener) {
+                    transactionsListener();
+                    transactionsListener = null;
+                }
+                
+                await window.firebase.authFunctions.signOut(window.firebase.auth);
+                showToast('Logout berhasil', 'success');
+                
+                // Reset logout button
+                setTimeout(() => {
+                    logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt text-sm"></i>';
+                }, 1000);
+            } catch (error) {
+                showToast('Logout gagal: ' + error.message, 'error');
+                // Reset logout button on error
+                logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt text-sm"></i>';
+            }
+        }
+
+        // Show different screens
+        function showScreen(screen) {
+            loginScreen.classList.add('hidden');
+            registerScreen.classList.add('hidden');
+            mainApp.classList.add('hidden');
+            
+            if (screen === 'login') {
+                // Reset login form and button state
+                loginForm.reset();
+                hideButtonLoading(loginBtn, loginBtnText, loginBtnLoading);
+                loginScreen.classList.remove('hidden');
+            } else if (screen === 'register') {
+                // Reset register form and button state
+                registerForm.reset();
+                hideButtonLoading(registerBtn, registerBtnText, registerBtnLoading);
+                registerScreen.classList.remove('hidden');
+            } else if (screen === 'main') {
+                mainApp.classList.remove('hidden');
+            }
+        }
+
+        // Load transactions from database
+        function loadTransactions(filter = 'all') {
+            currentFilter = filter;
+            
+            const transactionsRef = window.firebase.databaseFunctions.ref(window.firebase.database, 'transactions');
+            
+            // Remove existing listener if any
+            if (transactionsListener) {
+                transactionsListener();
+            }
+            
+            transactionsListener = window.firebase.databaseFunctions.onValue(transactionsRef, (snapshot) => {
+                transactions = [];
+                snapshot.forEach((childSnapshot) => {
+                    const transaction = childSnapshot.val();
+                    transaction.id = childSnapshot.key;
+                    transactions.push(transaction);
+                });
+                
+                renderTransactions();
+                updateSummary();
+                updateMonthlySummary();
+            }, (error) => {
+                showToast('Error loading transactions: ' + error.message, 'error');
+            });
+        }
+
+        // Render transactions to table
+        function renderTransactions() {
+            if (transactions.length === 0) {
+                transactionList.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-6 text-center text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-receipt text-3xl mb-2 opacity-20"></i>
+                            <p class="text-sm">Belum ada transaksi</p>
+                            <p class="text-xs mt-1">${userRole === 'admin' ? 'Tambahkan transaksi pertama' : 'Admin akan menambahkan transaksi'}</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Filter transactions
+            let filteredTransactions = transactions;
+            if (currentFilter === 'income') {
+                filteredTransactions = transactions.filter(t => t.type === 'income');
+            } else if (currentFilter === 'expense') {
+                filteredTransactions = transactions.filter(t => t.type === 'expense');
+            }
+            
+            // Sort by date (newest first)
+            filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            // Render transactions
+            transactionList.innerHTML = filteredTransactions.map(transaction => `
+                <tr class="border-b border-gray-100 dark:border-gray-700 fade-in">
+                    <td class="py-3">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-lg ${transaction.type === 'income' ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400' : 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400'} flex items-center justify-center mr-2 md:mr-3">
+                                <i class="fas ${transaction.type === 'income' ? 'fa-arrow-down' : 'fa-arrow-up'} text-xs"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="font-medium text-gray-800 dark:text-white text-sm truncate">${transaction.description}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    <i class="fas fa-user-edit mr-1"></i>Oleh: ${transaction.createdByName || transaction.userName || 'System'}
+                                    ${transaction.lastEditedBy ? `<br><i class="fas fa-edit mr-1"></i>Diedit: ${transaction.lastEditedByName || transaction.lastEditedBy}` : ''}
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 md:hidden">${formatDate(transaction.date)}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3 text-gray-600 dark:text-gray-400 text-sm hidden md:table-cell">${formatDate(transaction.date)}</td>
+                    <td class="py-3 text-right font-medium ${transaction.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} text-sm">
+                        ${transaction.type === 'income' ? '+' : '-'} ${formatCurrency(transaction.amount)}
+                    </td>
+                    <td class="py-3 text-right">
+                        ${userRole === 'admin' ? `
+                        <button onclick="editTransaction('${transaction.id}')" class="text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 p-1 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900 transition-colors mr-2">
+                            <i class="fas fa-edit text-xs"></i>
+                        </button>
+                        <button onclick="showDeleteModal('${transaction.id}')" class="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900 transition-colors">
+                            <i class="fas fa-trash text-xs"></i>
+                        </button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Add new transaction
+        async function addTransaction(e) {
+            e.preventDefault();
+            
+            if (userRole !== 'admin') {
+                showToast('Hanya admin yang bisa menambah transaksi', 'error');
+                return;
+            }
+            
+            const description = document.getElementById('description').value.trim();
+            const amount = parseInt(document.getElementById('amount').value);
+            const type = document.querySelector('input[name="type"]:checked').value;
+            const date = document.getElementById('date').value;
+            
+            if (!description) {
+                showToast('Keterangan transaksi harus diisi', 'error');
+                return;
+            }
+            
+            if (isNaN(amount) || amount <= 0) {
+                showToast('Nominal harus berupa angka positif', 'error');
+                return;
+            }
+            
+            // Show loading state
+            showButtonLoading(submitTransactionBtn, submitTransactionText, submitTransactionLoading);
+            
+            try {
+                const transactionsRef = window.firebase.databaseFunctions.ref(window.firebase.database, 'transactions');
+                const newTransactionRef = window.firebase.databaseFunctions.push(transactionsRef);
+                
+                await window.firebase.databaseFunctions.set(newTransactionRef, {
+                    userId: currentUser.uid,
+                    userName: userData.name || currentUser.email,
+                    createdByName: userData.name || currentUser.email,
+                    description: description,
+                    amount: amount,
+                    type: type,
+                    date: date,
+                    createdAt: new Date().toISOString(),
+                    createdBy: currentUser.uid
+                });
+                
+                // Reset form
+                transactionForm.reset();
+                document.getElementById('date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('income').checked = true;
+                
+                // Hide loading state
+                hideButtonLoading(submitTransactionBtn, submitTransactionText, submitTransactionLoading);
+                
+                showToast('Transaksi berhasil ditambahkan', 'success');
+            } catch (error) {
+                showToast('Error menambah transaksi: ' + error.message, 'error');
+                // Hide loading state on error
+                hideButtonLoading(submitTransactionBtn, submitTransactionText, submitTransactionLoading);
+            }
+        }
+
+        // Edit transaction (placeholder function)
+        function editTransaction(transactionId) {
+            if (userRole !== 'admin') {
+                showToast('Hanya admin yang bisa mengedit transaksi', 'error');
+                return;
+            }
+            
+            // Find the transaction
+            const transaction = transactions.find(t => t.id === transactionId);
+            if (transaction) {
+                // Fill form with transaction data
+                document.getElementById('description').value = transaction.description;
+                document.getElementById('amount').value = transaction.amount;
+                document.getElementById('date').value = transaction.date;
+                
+                // Set transaction type
+                if (transaction.type === 'income') {
+                    document.getElementById('income').checked = true;
+                } else {
+                    document.getElementById('expense').checked = true;
+                }
+                
+                // Change form to edit mode
+                transactionForm.onsubmit = function(e) {
+                    e.preventDefault();
+                    updateTransaction(transactionId);
+                };
+                
+                submitTransactionText.innerHTML = '<i class="fas fa-save mr-2"></i> Update Transaksi';
+                
+                showToast('Isi form untuk mengedit transaksi', 'info');
+            }
+        }
+
+        // Update transaction
+        async function updateTransaction(transactionId) {
+            const description = document.getElementById('description').value.trim();
+            const amount = parseInt(document.getElementById('amount').value);
+            const type = document.querySelector('input[name="type"]:checked').value;
+            const date = document.getElementById('date').value;
+            
+            if (!description) {
+                showToast('Keterangan transaksi harus diisi', 'error');
+                return;
+            }
+            
+            if (isNaN(amount) || amount <= 0) {
+                showToast('Nominal harus berupa angka positif', 'error');
+                return;
+            }
+            
+            // Show loading state
+            showButtonLoading(submitTransactionBtn, submitTransactionText, submitTransactionLoading);
+            
+            try {
+                const transactionRef = window.firebase.databaseFunctions.ref(window.firebase.database, 'transactions/' + transactionId);
+                
+                await window.firebase.databaseFunctions.update(transactionRef, {
+                    description: description,
+                    amount: amount,
+                    type: type,
+                    date: date,
+                    lastEditedBy: currentUser.uid,
+                    lastEditedByName: userData.name || currentUser.email,
+                    lastEditedAt: new Date().toISOString()
+                });
+                
+                // Reset form to add mode
+                transactionForm.reset();
+                document.getElementById('date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('income').checked = true;
+                
+                transactionForm.onsubmit = addTransaction;
+                submitTransactionText.innerHTML = '<i class="fas fa-plus mr-2"></i> Tambah Transaksi';
+                
+                // Hide loading state
+                hideButtonLoading(submitTransactionBtn, submitTransactionText, submitTransactionLoading);
+                
+                showToast('Transaksi berhasil diupdate', 'success');
+            } catch (error) {
+                showToast('Error mengupdate transaksi: ' + error.message, 'error');
+                // Hide loading state on error
+                hideButtonLoading(submitTransactionBtn, submitTransactionText, submitTransactionLoading);
+            }
+        }
+
+        // Show delete confirmation modal
+        function showDeleteModal(transactionId) {
+            if (userRole !== 'admin') {
+                showToast('Hanya admin yang bisa menghapus transaksi', 'error');
+                return;
+            }
+            
+            transactionToDelete = transactionId;
+            deleteModal.classList.remove('hidden');
+        }
+
+        // Delete transaction
+        async function deleteTransaction() {
+            if (transactionToDelete && userRole === 'admin') {
+                // Show loading state
+                showButtonLoading(confirmDelete, confirmDeleteText, confirmDeleteLoading);
+                
+                try {
+                    const transactionRef = window.firebase.databaseFunctions.ref(window.firebase.database, 'transactions/' + transactionToDelete);
+                    await window.firebase.databaseFunctions.remove(transactionRef);
+                    showToast('Transaksi berhasil dihapus', 'success');
+                } catch (error) {
+                    showToast('Error menghapus transaksi: ' + error.message, 'error');
+                }
+                
+                // Hide loading state and modal
+                hideButtonLoading(confirmDelete, confirmDeleteText, confirmDeleteLoading);
+                deleteModal.classList.add('hidden');
+                transactionToDelete = null;
+            }
+        }
+
+        // Filter transactions
+        function filterTransactions(type) {
+            // Update active filter buttons
+            document.querySelectorAll('#filterAll, #filterIncome, #filterExpense').forEach(btn => {
+                btn.classList.remove('bg-primary', 'text-white');
+                btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            });
+            
+            if (type === 'all') {
+                filterAll.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                filterAll.classList.add('bg-primary', 'text-white');
+            } else if (type === 'income') {
+                filterIncome.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                filterIncome.classList.add('bg-primary', 'text-white');
+            } else if (type === 'expense') {
+                filterExpense.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                filterExpense.classList.add('bg-primary', 'text-white');
+            }
+            
+            loadTransactions(type);
+        }
+
+        // Update summary cards
+        function updateSummary() {
+            const income = transactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const expense = transactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const balance = income - expense;
+            
+            summaryCards.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 bounce-in transition-colors duration-300">
+                    <div class="flex justify-between items-start">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs">Total Saldo</p>
+                            <h2 class="text-xl font-bold text-gray-800 dark:text-white mt-1 truncate">${formatCurrency(balance)}</h2>
+                        </div>
+                        <div class="bg-green-100 dark:bg-green-900 p-2 rounded-lg flex-shrink-0 ml-2">
+                            <i class="fas fa-wallet text-green-600 dark:text-green-400"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 bounce-in transition-colors duration-300" style="animation-delay: 0.1s;">
+                    <div class="flex justify-between items-start">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs">Total Pemasukan</p>
+                            <h2 class="text-xl font-bold text-gray-800 dark:text-white mt-1 truncate">${formatCurrency(income)}</h2>
+                        </div>
+                        <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg flex-shrink-0 ml-2">
+                            <i class="fas fa-arrow-down text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 bounce-in transition-colors duration-300" style="animation-delay: 0.2s;">
+                    <div class="flex justify-between items-start">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs">Total Pengeluaran</p>
+                            <h2 class="text-xl font-bold text-gray-800 dark:text-white mt-1 truncate">${formatCurrency(expense)}</h2>
+                        </div>
+                        <div class="bg-red-100 dark:bg-red-900 p-2 rounded-lg flex-shrink-0 ml-2">
+                            <i class="fas fa-arrow-up text-red-600 dark:text-red-400"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Populate month/year selectors
+        function populateMonthYearOptions() {
+            const months = [
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+            
+            monthSelector.innerHTML = months.map((month, index) => 
+                `<option value="${index + 1}" ${new Date().getMonth() + 1 === index + 1 ? 'selected' : ''}>${month}</option>`
+            ).join('');
+            
+            const currentYear = new Date().getFullYear();
+            yearSelector.innerHTML = '';
+            for (let year = currentYear - 2; year <= currentYear + 2; year++) {
+                yearSelector.innerHTML += `<option value="${year}" ${year === currentYear ? 'selected' : ''}>${year}</option>`;
+            }
+        }
+
+        // Update monthly summary
+        function updateMonthlySummary() {
+            const selectedMonth = parseInt(monthSelector.value);
+            const selectedYear = parseInt(yearSelector.value);
+            
+            const monthlyTransactions = transactions.filter(t => {
+                const transactionDate = new Date(t.date);
+                return transactionDate.getMonth() + 1 === selectedMonth && 
+                       transactionDate.getFullYear() === selectedYear;
+            });
+            
+            const income = monthlyTransactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const expense = monthlyTransactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const balance = income - expense;
+            
+            monthlyIncome.textContent = formatCurrency(income);
+            monthlyExpense.textContent = formatCurrency(expense);
+            monthlyBalance.textContent = formatCurrency(balance);
+        }
+
+        // Utility functions
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            const options = { day: 'numeric', month: 'short', year: 'numeric' };
+            return new Date(dateString).toLocaleDateString('id-ID', options);
+        }
+
+        function showToast(message, type = 'success') {
+            toastMessage.textContent = message;
+            
+            if (type === 'success') {
+                toastIcon.className = 'fas fa-check-circle mr-2 text-green-400';
+            } else if (type === 'error') {
+                toastIcon.className = 'fas fa-exclamation-circle mr-2 text-red-400';
+            } else if (type === 'warning') {
+                toastIcon.className = 'fas fa-exclamation-triangle mr-2 text-yellow-400';
+            } else if (type === 'info') {
+                toastIcon.className = 'fas fa-info-circle mr-2 text-blue-400';
+            }
+            
+            toast.classList.remove('hidden');
+            toast.classList.remove('translate-y-16');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-16');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 300);
+            }, 3000);
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.classList.contains('dark');
+            
+            if (isDark) {
+                html.classList.remove('dark');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+                localStorage.setItem('cashflow_theme', 'light');
+            } else {
+                html.classList.add('dark');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+                localStorage.setItem('cashflow_theme', 'dark');
+            }
+        }
+
+        function checkSavedTheme() {
+            const savedTheme = localStorage.getItem('cashflow_theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+        }
+    </script>
+</body>
+</html>
