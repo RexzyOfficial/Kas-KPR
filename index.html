@@ -71,18 +71,6 @@
         measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
     };
 
-    // Fallback untuk development (opsional)
-    const devConfig = {
-        apiKey: "placeholder_dev_key",
-        authDomain: "kas-kpr.firebaseapp.com",
-        databaseURL: "https://kas-kpr-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "kas-kpr",
-        storageBucket: "kas-kpr.firebasestorage.app",
-        messagingSenderId: "789983569241",
-        appId: "1:789983569241:web:ef372ad66007c14d9dd848",
-        measurementId: "G-QD1NYS0CF8"
-    };
-
     // Use environment variables if available, otherwise use dev config
     const config = import.meta.env.VITE_FIREBASE_API_KEY ? firebaseConfig : devConfig;
 
